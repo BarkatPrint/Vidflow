@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@layer base {
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background-color: #050608; color: #e2e8f0; font-family: 'Space Grotesk', sans-serif; }
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #2a3045; border-radius: 4px; }
+  input[type=range] { -webkit-appearance: none; height: 4px; border-radius: 4px; background: #1a1e28; outline: none; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; cursor: pointer; }
+  input[type=date], input[type=time] { color-scheme: dark; }
+}
+@layer components {
+  .ambient-bg {
+    background:
+      radial-gradient(ellipse 70% 50% at 15% 10%, rgba(255,45,85,0.09) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 40% at 85% 90%, rgba(14,165,233,0.07) 0%, transparent 60%);
+  }
+  .grid-lines {
+    background-image: linear-gradient(rgba(31,37,53,0.45) 1px, transparent 1px), linear-gradient(90deg, rgba(31,37,53,0.45) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse 100% 100% at 50% 50%, rgba(0,0,0,0.5) 40%, transparent 100%);
+  }
+  .nav-active { color: #ff2d55 !important; background: rgba(255,45,85,0.08) !important; border: 1px solid rgba(255,45,85,0.18) !important; position: relative; }
+  .nav-active::before { content: ''; position: absolute; left: 0; top: 20%; bottom: 20%; width: 2px; border-radius: 2px; background: #ff2d55; }
+  .card-glow { position: relative; overflow: hidden; }
+  .card-glow::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(255,45,85,0.6), transparent); opacity: 0; transition: opacity 0.3s; }
+  .card-glow:hover::before { opacity: 1; }
+  .shimmer-line { position: absolute; top: 0; bottom: 0; width: 40%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent); animation: shimmer 2.5s infinite linear; }
+}
