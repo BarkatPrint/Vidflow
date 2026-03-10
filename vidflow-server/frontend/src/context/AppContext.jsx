@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useCallback, useEffect, useRef } f
 
 const AppContext = createContext(null)
 const SCOPES = 'https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly'
-const API = '/api'
+const API = import.meta.env.VITE_API_URL + '/api'
 
 // Load saved channels from localStorage
 function loadSavedChannels() {
