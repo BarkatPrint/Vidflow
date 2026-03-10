@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useCallback, useEffect, useRef } f
 
 const AppContext = createContext(null)
 const SCOPES = 'https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/youtube.readonly'
-const API = import.meta.env.VITE_API_URL + '/api'
+const API = "https://vidflow-backend-wpt5.onrender.com/api"
 
 // Load saved channels from localStorage
 function loadSavedChannels() {
