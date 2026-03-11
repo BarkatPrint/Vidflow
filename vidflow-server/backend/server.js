@@ -83,8 +83,10 @@ app.get('/api/youtube/channel', async (req, res) => {
 app.post('/api/youtube/upload/init', async (req, res) => {
   const token = req.headers['x-access-token']
   if (!token) return res.status(401).json({ error: 'No token' })
+
   try {
     const { metadata, mimeType, fileSize } = req.body
+
     const resp = await fetch(
       'https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status',
       {
@@ -98,17 +100,25 @@ app.post('/api/youtube/upload/init', async (req, res) => {
         body: JSON.stringify(metadata),
       }
     )
+
     if (!resp.ok) {
       const e = await resp.json().catch(() => ({}))
       return res.status(resp.status).json({ error: e?.error?.message || 'Init failed' })
     }
-    const uploadUrl = resp.headers.get('Location')
-    res.json({ uploadUrl })
-  } catch (err) { res.status(500).json({ error: err.message }) }
-})
 
-app.listen(PORT, () => {
-  console.log(`\n🚀 VidFlow Backend: http://localhost:${PORT}`)
-  console.log(`   Client ID:     ${process.env.GOOGLE_CLIENT_ID ? '✅ Set' : '❌ Missing!'}`)
-  console.log(`   Client Secret: ${process.env.GOOGLE_CLIENT_SECRET ? '✅ Set' : '❌ Missing!'}\n`)
+    const uploadUrl = resp.headers.get('Location')
+
+    let videoId = null
+    try {
+      const data = await resp.json().catch(() => null)
+      if (data && data.id) {
+        videoId = data.id
+      }
+    } catch {}
+
+    res.json({ uploadUrl, videoId })
+
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
 })
