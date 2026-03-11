@@ -13,78 +13,80 @@ app.use(cors({
   origin: [FRONTEND_URL, 'http://localhost:5173', 'http://localhost:4173'],
   credentials: true
 }))
-app.use(express.json({ limit: '10mb' }))
+
+app.use(express.json({ limit: '50mb' }))
 
 app.get('/api/health', (req, res) => res.json({ ok: true }))
 
-// Client ID — safe to send to frontend (not secret)
+// OAuth config
 app.get('/api/oauth/config', (req, res) => {
   res.json({ clientId: process.env.GOOGLE_CLIENT_ID })
 })
 
-// Exchange auth code for tokens — CLIENT SECRET STAYS HERE!
+// Exchange auth code
 app.post('/api/oauth/exchange', async (req, res) => {
   try {
     const { code, redirectUri } = req.body
+
     const resp = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
         code,
-        client_id:     process.env.GOOGLE_CLIENT_ID,
+        client_id: process.env.GOOGLE_CLIENT_ID,
         client_secret: process.env.GOOGLE_CLIENT_SECRET,
-        redirect_uri:  redirectUri,
-        grant_type:    'authorization_code',
-      }),
+        redirect_uri: redirectUri,
+        grant_type: 'authorization_code'
+      })
     })
+
     const data = await resp.json()
-    if (data.error) return res.status(400).json({ error: data.error_description || data.error })
-    res.json({ accessToken: data.access_token, refreshToken: data.refresh_token, expiresIn: data.expires_in })
-  } catch (err) { res.status(500).json({ error: err.message }) }
+
+    if (data.error)
+      return res.status(400).json({ error: data.error })
+
+    res.json({
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token,
+      expiresIn: data.expires_in
+    })
+
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
 })
 
-// Refresh token — CLIENT SECRET STAYS HERE!
-app.post('/api/oauth/refresh', async (req, res) => {
-  try {
-    const { refreshToken } = req.body
-    if (!refreshToken) return res.status(400).json({ error: 'No refresh token' })
-    const resp = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        refresh_token: refreshToken,
-        client_id:     process.env.GOOGLE_CLIENT_ID,
-        client_secret: process.env.GOOGLE_CLIENT_SECRET,
-        grant_type:    'refresh_token',
-      }),
-    })
-    const data = await resp.json()
-    if (data.error) return res.status(401).json({ error: 'Token refresh failed' })
-    res.json({ accessToken: data.access_token, expiresIn: data.expires_in })
-  } catch (err) { res.status(500).json({ error: err.message }) }
-})
-
-// YouTube channel info proxy
+// Channel info
 app.get('/api/youtube/channel', async (req, res) => {
+
   const token = req.headers['x-access-token']
   if (!token) return res.status(401).json({ error: 'No token' })
+
   try {
+
     const resp = await fetch(
       'https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&mine=true',
       { headers: { Authorization: 'Bearer ' + token } }
     )
+
     const data = await resp.json()
-    if (data.error) return res.status(400).json({ error: data.error.message })
+
     res.json(data)
-  } catch (err) { res.status(500).json({ error: err.message }) }
+
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
 })
 
-// YouTube upload init — CLIENT SECRET STAYS HERE!
+
+// STEP 1: INIT YOUTUBE UPLOAD
 app.post('/api/youtube/upload/init', async (req, res) => {
+
   const token = req.headers['x-access-token']
   if (!token) return res.status(401).json({ error: 'No token' })
 
   try {
+
     const { metadata, mimeType, fileSize } = req.body
 
     const resp = await fetch(
@@ -92,12 +94,12 @@ app.post('/api/youtube/upload/init', async (req, res) => {
       {
         method: 'POST',
         headers: {
-          'Authorization': 'Bearer ' + token,
+          Authorization: 'Bearer ' + token,
           'Content-Type': 'application/json; charset=UTF-8',
           'X-Upload-Content-Type': mimeType,
-          'X-Upload-Content-Length': String(fileSize),
+          'X-Upload-Content-Length': String(fileSize)
         },
-        body: JSON.stringify(metadata),
+        body: JSON.stringify(metadata)
       }
     )
 
@@ -108,17 +110,40 @@ app.post('/api/youtube/upload/init', async (req, res) => {
 
     const uploadUrl = resp.headers.get('Location')
 
-    let videoId = null
-    try {
-      const data = await resp.json().catch(() => null)
-      if (data && data.id) {
-        videoId = data.id
-      }
-    } catch {}
-
-    res.json({ uploadUrl, videoId })
+    res.json({ uploadUrl })
 
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
+})
+
+
+// STEP 2: UPLOAD VIDEO VIA BACKEND (CORS FIX)
+app.post('/api/youtube/upload/put', async (req, res) => {
+
+  try {
+
+    const { uploadUrl, mimeType, file } = req.body
+
+    const resp = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': mimeType
+      },
+      body: Buffer.from(file.data)
+    })
+
+    if (!resp.ok) {
+      return res.status(resp.status).json({ error: 'Upload failed' })
+    }
+
+    res.json({ success: true })
+
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.listen(PORT, () => {
+  console.log(`🚀 VidFlow Backend running on port ${PORT}`)
 })
