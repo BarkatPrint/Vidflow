@@ -88,8 +88,15 @@ async function makeBlob(img, dur, fps, eff, idx, size, audioBuf, txt, onP) {
 async function ytUpload(blob, mimeType, meta, token) {
   const initRes = await fetch('/api/youtube/upload/init', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-access-token': token },
-    body: JSON.stringify({ metadata: meta, mimeType, fileSize: blob.size }),
+    headers: { 
+      'Content-Type': 'application/json',
+      'x-access-token': token
+    },
+    body: JSON.stringify({
+      metadata: meta,
+      mimeType,
+      fileSize: blob.size
+    }),
   })
 
   const initData = await initRes.json()
@@ -108,7 +115,8 @@ async function ytUpload(blob, mimeType, meta, token) {
     throw new Error('Upload failed ' + uploadRes.status)
   }
 
-  return null
+  // 🔴 YAHAN CHANGE HAI
+  return initData.videoId || null
 }
 
 // ── CONSTANTS ────────────────────────────────────────────────────
