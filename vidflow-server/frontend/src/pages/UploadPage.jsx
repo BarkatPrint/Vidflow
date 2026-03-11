@@ -91,12 +91,24 @@ async function ytUpload(blob, mimeType, meta, token) {
     headers: { 'Content-Type': 'application/json', 'x-access-token': token },
     body: JSON.stringify({ metadata: meta, mimeType, fileSize: blob.size }),
   })
+
   const initData = await initRes.json()
-  if (!initRes.ok || initData.error) throw new Error(initData.error || 'Upload init failed')
-  const uploadRes = await fetch(initData.uploadUrl, { method: 'PUT', headers: { 'Content-Type': mimeType }, body: blob })
-  if (!uploadRes.ok) { const e = await uploadRes.json().catch(()=>({})); throw new Error(e?.error?.message || 'Upload failed ' + uploadRes.status) }
-  const data = await uploadRes.json().catch(()=>({}))
-  return data.id || null
+
+  if (!initRes.ok || initData.error) {
+    throw new Error(initData.error || 'Upload init failed')
+  }
+
+  const uploadRes = await fetch(initData.uploadUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': mimeType },
+    body: blob
+  })
+
+  if (!uploadRes.ok) {
+    throw new Error('Upload failed ' + uploadRes.status)
+  }
+
+  return null
 }
 
 // ── CONSTANTS ────────────────────────────────────────────────────
