@@ -86,6 +86,8 @@ async function makeBlob(img, dur, fps, eff, idx, size, audioBuf, txt, onP) {
 
 // ── YOUTUBE UPLOAD via backend proxy ────────────────────────────
 async function ytUpload(blob, mimeType, meta, token) {
+
+  // STEP 1: INIT UPLOAD
   const initRes = await fetch('/api/youtube/upload/init', {
     method: 'POST',
     headers: { 
@@ -105,19 +107,36 @@ async function ytUpload(blob, mimeType, meta, token) {
     throw new Error(initData.error || 'Upload init failed')
   }
 
-  const uploadRes = await fetch(initData.uploadUrl, {
-    method: 'PUT',
-    headers: { 'Content-Type': mimeType },
-    body: blob
+  // STEP 2: CONVERT BLOB → BASE64
+  const buffer = await blob.arrayBuffer()
+  const base64 = btoa(
+    new Uint8Array(buffer)
+      .reduce((data, byte) => data + String.fromCharCode(byte), '')
+  )
+
+  // STEP 3: UPLOAD VIA BACKEND
+  const uploadRes = await fetch('/api/youtube/upload/put', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-access-token': token
+    },
+    body: JSON.stringify({
+      uploadUrl: initData.uploadUrl,
+      mimeType,
+      file: { data: base64 }
+    })
   })
 
+  const uploadData = await uploadRes.json()
+
   if (!uploadRes.ok) {
-    throw new Error('Upload failed ' + uploadRes.status)
+    throw new Error(uploadData.error || 'Upload failed')
   }
 
-  // 🔴 YAHAN CHANGE HAI
   return initData.videoId || null
 }
+
 
 // ── CONSTANTS ────────────────────────────────────────────────────
 const EFFECTS=[
